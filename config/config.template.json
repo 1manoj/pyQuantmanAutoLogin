@@ -1,0 +1,28 @@
+{
+  "broker": "Flattrade",
+  "username": "YOUR_FLATTRADE_USERNAME_HERE",
+  "password": "YOUR_FLATTRADE_PASSWORD_HERE",
+  "pin": "YOUR_FLATTRADE_PIN_HERE",
+  "totp_secret": "YOUR_TOTP_SECRET_KEY_HERE",
+  "GITHUB_OWNER": "YOUR_GITHUB_ID_HERE",
+  "GITHUB_REPO": "pyQuantmanAutoLogin",
+  "GITHUB_TOKEN": "YOUR_PERSONAL_ACCESS_TOKEN_HERE",
+  "notification_settings": {
+    "whatsapp_enabled": false,
+    "sms_enabled": false
+  },
+  "browser_settings": {
+    "headless": true,
+    "timeout": 20,
+    "window_size": [
+      1920,
+      1080
+    ]
+  },
+  "retry_settings": {
+    "attempts": 6,
+    "delay_seconds": 30
+  },
+  "buffer_small_delay_seconds": 3,
+  "buffer_medium_delay_seconds": 6
+}

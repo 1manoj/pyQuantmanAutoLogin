@@ -1,0 +1,6 @@
+selenium==4.15.2
+pyotp==2.9.0
+twilio==8.10.0
+python-dotenv==1.0.0
+webdriver-manager==4.0.1
+pytz
