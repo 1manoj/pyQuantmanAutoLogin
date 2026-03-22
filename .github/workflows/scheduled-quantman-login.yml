@@ -52,8 +52,23 @@ jobs:
             "GITHUB_TOKEN": "'$GH_TOKEN'",
             "GITHUB_REPO": "'$GH_REPO'",
             "GITHUB_OWNER": "'$GH_OWNER'",
+            "notification_settings": {
+              "whatsapp_enabled": false,
+              "sms_enabled": false
+            },
+            "retry_settings": {
+              "attempts": 6,
+              "delay_seconds": 30
+            },
+            "buffer_small_delay_seconds": 3,
+            "buffer_medium_delay_seconds": 6,
             "browser_settings": {
-              "headless": true
+              "headless": true,
+              "timeout": 20,
+              "window_size": [
+                1920,
+                1080
+              ]
             }
           }' > config/config.json
 
