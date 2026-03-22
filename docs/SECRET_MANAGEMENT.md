@@ -3,13 +3,19 @@
 This guide explains how to secure your sensitive credentials while maintaining the ability to run automated GitHub Workflows for the Quantman login system.
 
 ## 📐 Overview
-To run the Quantman automation on GitHub Actions without checking your passwords or TOTP secret into the public repository, follow this three-phase approach:
+To run the Quantman automation on GitHub Actions without checking your passwords or TOTP secret into the public repository, follow this four-phase approach:
+
+---
 
 ## 🔒 Phase 1: Local Privacy (The .gitignore Rule)
 Ensure your sensitive local files never reach GitHub in the first place:
 1.  **`.env`**: Store your secrets like `TWILIO_ACCOUNT_SID` and `FLATTRADE_API_KEY` here.
-2.  **`config/config.json`**: Make sure this file is added to your `.gitignore`.
-3.  **`config/config.template.json`**: (Optional) Create a template file with dummy values (e.g., `"username": "YOUR_USERNAME_HERE"`) to serve as a guide for others, but never commit the real values.
+2.  **`config/config.json`**: This is your real, active credentials file.
+3.  **The Templates**: 
+    - Use **`.env.example`** and **`config/config.template.json`** to share the structure of your setup with others safely.
+    - **NEVER** put real passwords in these template files.
+
+---
 
 ## 🚀 Phase 2: Storing Secrets on GitHub
 GitHub has a dedicated feature for this called **Repository Secrets**.
@@ -20,17 +26,19 @@ GitHub has a dedicated feature for this called **Repository Secrets**.
     - `FLATTRADE_PASSWORD`
     - `FLATTRADE_PIN`
     - `TOTP_SECRET`
-    - `GH_PAT` (Your GitHub Personal Access Token)
+    - **`GH_PAT`**: (Personal Access Token) This replaces the built-in `GITHUB_TOKEN` for repository-wide write permissions.
+    - **Twilio Secrets**: `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, etc.
+
+---
 
 ## 🔄 Phase 3: Injecting Secrets into the Workflow
-Since the script in `src/quantman_auto_login.py` expects a configuration file at `config/config.json`, we will configure the GitHub Workflow to **generate this file on the fly** using the secrets you just created.
+The system generates a temporary `config.json` on the GitHub runner at runtime. 
 
-Update your `.github/workflows/scheduled-quantman-login.yml` to include a "Create Config" step:
+Update your `.github/workflows/scheduled-quantman-login.yml` as follows:
 
 ```yaml
 - name: Create Configuration File
   env:
-    # Use the secrets mapped to environment variables
     USERNAME: ${{ secrets.FLATTRADE_USERNAME }}
     PASSWORD: ${{ secrets.FLATTRADE_PASSWORD }}
     PIN: ${{ secrets.FLATTRADE_PIN }}
@@ -49,9 +57,39 @@ Update your `.github/workflows/scheduled-quantman-login.yml` to include a "Creat
       "GITHUB_TOKEN": "'$GH_TOKEN'",
       "browser_settings": { "headless": true }
     }' > config/config.json
+
+- name: Run scheduled Quantman Login
+  env:
+    # Map .env secrets directly to the runner env
+    TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
+    TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
+    # ... more env variables here ...
+  run: |
+    python src/quantman_auto_login.py
 ```
 
+---
+
+## 🚨 Phase 4: Cleaning up the History (IMPORTANT)
+If you previously pushed your `.env` or `config.json` to GitHub, they are still in your **Git History**. To ensure no one can access them even after you make the repo public:
+
+### Option A: Scrub Existing History
+Use the `git-filter-repo` tool (recommended):
+```bash
+git filter-repo --path config/config.json --invert-paths
+git filter-repo --path .env --invert-paths
+git push origin --force --all
+```
+
+### Option B: Fresh Start (Safest)
+1. Delete the `.git` folder locally.
+2. Run `git init`.
+3. Add and commit your files (ensuring `.gitignore` is active).
+4. Push to a brand new repository.
+
+---
+
 ## 🧠 Why this works:
-- **Zero Leakage**: Your secrets are never written to any file that gets committed. They only exist in the memory of the GitHub runner for the few seconds it takes to execute the login.
-- **Environment Parity**: You keep the code exactly as it is (expecting a `config.json`), making it compatible with both your local machine and the cloud.
-- **Security**: GitHub automatically masks these values in the logs (you'll see `***` instead of your real password).
+- **Zero Leakage**: Your secrets are never written to any file that gets committed.
+- **Environment Parity**: Your Python code stays clean; it just reads from the `config/` it finds.
+- **Automatic Masking**: GitHub automatically masks these values in the logs (you'll see `***` instead of your real password).
