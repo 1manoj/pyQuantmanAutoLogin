@@ -60,7 +60,7 @@ jobs:
               "sms_enabled": false
             },
             "retry_settings": {
-              "attempts": 6,
+              "attempts": 2,
               "delay_seconds": 30
             },
             "buffer_small_delay_seconds": 3,

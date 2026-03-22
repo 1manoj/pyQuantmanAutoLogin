@@ -1,16 +1,18 @@
 # 🚀 pyQuantmanAutoLogin
 ### Automated Broker Login for Quantman.in
+### [Cloudflare Bypass / Stealth Mode Enabled]
 
-![Version](https://img.shields.io/badge/Version-1.0.0-blue)
-![Python](https://img.shields.io/badge/Python-3.11+-green)
+![Version](https://img.shields.io/badge/Version-1.1.0-blue)
+![Python](https://img.shields.io/badge/Python-3.12+-green)
 ![License](https://img.shields.io/badge/License-MIT-purple)
 
-Automatically log in to your **Quantman** dashboard using **Flattrade** as your broker with zero manual effort. This system handles 2FA (TOTP), same-origin redirects, and even sends you a WhatsApp or SMS once the login is successfully verified.
+Automatically log in to your **Quantman** dashboard using **Flattrade** as your broker with zero manual effort. This system handles 2FA (TOTP), same-origin redirects, and **bypasses Cloudflare's "Verify you are human" checks** using advanced stealth techniques.
 
 ---
 
 ## 🌟 Key Features
 - **Total Automation**: Handles the full login sequence including the nested Flattrade popup.
+- **Cloudflare Stealth Mode**: Uses `undetected-chromedriver` and `selenium-stealth` to bypass security challenges on GitHub Actions.
 - **Smart 2FA**: Generates your TOTP (Time-Based OTP) on the fly.
 - **Cross-Platform State**: Uses the GitHub API to check if you are already logged in for the day, preventing redundant attempts.
 - **Real-time Notifications**: Get success or fail updates via **WhatsApp** or **SMS** through Twilio.
@@ -91,6 +93,7 @@ python src/scheduler.py
 For more technical details or cloud deployment guides:
 - 🏗️ [System Architecture](docs/ARCHITECTURE.md)
 - 🔒 [Securing Your Secrets on GitHub](docs/SECRET_MANAGEMENT.md)
+- 🧪 [Technical Challenges & Learnings](docs/CHALLENGES_AND_LEARNINGS.md)
 - 📝 [Package Inventory](docs/PACKAGE_SUMMARY.md)
 
 ---

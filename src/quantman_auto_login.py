@@ -15,13 +15,13 @@ from typing import Dict, Optional
 # Third-party imports
 import pyotp
 from dotenv import load_dotenv
-from selenium import webdriver
+import undetected_chromedriver as uc
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.chrome.options import Options
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
 from selenium.webdriver.common.keys import Keys
+from selenium_stealth import stealth
 from twilio.rest import Client
 from twilio.base.exceptions import TwilioException
 import pytz  # pip install pytz
@@ -166,32 +166,42 @@ class QuantmanAutoLogin:
 
     def setup_driver(self, headless: bool = False):
         """
-        Setup Chrome WebDriver with options
-
+        Setup Chrome WebDriver using undetected_chromedriver and selenium_stealth
+        
         Args:
             headless: Run browser in headless mode
         """
         try:
-            chrome_options = Options()
+            options = uc.ChromeOptions()
             if headless:
-                chrome_options.add_argument('--headless')
-            chrome_options.add_argument('--no-sandbox')
-            chrome_options.add_argument('--disable-dev-shm-usage')
-            chrome_options.add_argument('--disable-gpu')
-            chrome_options.add_argument('--window-size=1920,1080')
-            chrome_options.add_argument('--disable-popup-blocking')
-            chrome_options.add_argument('--disable-notifications')
-            # Critical for some cross-origin popups
-            chrome_options.add_argument('--disable-features=IsolateOrigins,site-per-process')
+                options.add_argument('--headless')
             
-            self.driver = webdriver.Chrome(options=chrome_options)
+            # Optimized arguments for Cloudflare bypass on Linux/GitHub Runners
+            options.add_argument('--no-sandbox')
+            options.add_argument('--disable-dev-shm-usage')
+            options.add_argument('--disable-gpu')
+            options.add_argument('--window-size=1920,1080')
+            
+            # Initialize undetected_chromedriver
+            self.driver = uc.Chrome(options=options)
+            
+            # Apply selenium-stealth for deep fingerprint masking (simulating Windows)
+            stealth(self.driver,
+                    languages=["en-US", "en"],
+                    vendor="Google Inc.",
+                    platform="Win32",
+                    webgl_vendor="Intel Inc.",
+                    renderer="Intel Iris OpenGL Engine",
+                    fix_hairline=True,
+                    )
+            
             self.driver.maximize_window()
-            self.wait = WebDriverWait(self.driver, 20)  # Increased timeout for robustness
-
-            logger.info("WebDriver setup completed")
+            self.wait = WebDriverWait(self.driver, 40) # Increased for Cloudflare delays
+            
+            logger.info("Undetected WebDriver setup completed with stealth features")
 
         except Exception as e:
-            logger.error(f"Error setting up WebDriver: {str(e)}\n{traceback.format_exc()}")
+            logger.error(f"Error setting up Stealth WebDriver: {str(e)}\n{traceback.format_exc()}")
             raise
 
     def generate_totp(self) -> str:
@@ -252,6 +262,48 @@ class QuantmanAutoLogin:
         except Exception as e:
             logger.warning(f"Error while trying to close popups: {e}")
 
+    def handle_cloudflare_challenge(self):
+        """
+        Detect and wait for Cloudflare security verification (Turnstile)
+        """
+        try:
+            # Check if the page contains Cloudflare verification indicators
+            indicators = [
+                "//h1[contains(text(), 'verification')]",
+                "//div[contains(text(), 'verifying you are not a bot')]",
+                "//title[contains(text(), 'Just a moment')]",
+                "//iframe[contains(@title, 'Cloudflare')]"
+            ]
+            
+            is_challenged = False
+            for selector in indicators:
+                if len(self.driver.find_elements(By.XPATH, selector)) > 0:
+                    is_challenged = True
+                    break
+            
+            if is_challenged:
+                logger.info("Cloudflare challenge detected. Waiting for verification...")
+                # Take a screenshot for debugging the challenge state
+                self.driver.save_screenshot(os.path.join(LOG_DIR, 'cloudflare_challenge.png'))
+                
+                # Wait for the challenge to clear (up to 30 seconds)
+                # We check for the absence of the challenge or the presence of the landing page button
+                for _ in range(30):
+                    time.sleep(1)
+                    # Check if any original entry point is now visible
+                    entry_points = ["button.login-btn", "button.free-trial-button", "button.login-btn"]
+                    for ep in entry_points:
+                        if len(self.driver.find_elements(By.CSS_SELECTOR, ep)) > 0:
+                            logger.info("Cloudflare challenge cleared successfully!")
+                            return True
+                
+                logger.warning("Cloudflare challenge persisted beyond 30 seconds.")
+                return False
+            return True
+        except Exception as e:
+            logger.error(f"Error during Cloudflare handling: {e}")
+            return False
+
     def open_quantman(self):
         """
         Open quantman.in website
@@ -259,11 +311,12 @@ class QuantmanAutoLogin:
         try:
             self.driver.get("https://quantman.in")
             logger.info("Opened quantman.in")
-
-            # Wait for page to load
-            self.wait.until(EC.visibility_of_element_located((By.TAG_NAME, "body")))
+            time.sleep(2) # Allow initial rendering
             
-            # Close any initial popups
+            # Check for Cloudflare challenge immediately
+            self.handle_cloudflare_challenge()
+            
+            # Try to close any initial popups
             self.close_popups()
 
         except TimeoutException:
@@ -696,16 +749,23 @@ class QuantmanAutoLogin:
 
     def cleanup(self):
         """
-            Clean up resources
+        Clean up resources
         """
         try:
             if self.driver:
-                self.driver.quit()
-                logger.info("WebDriver closed")
+                # On Windows, uc.Chrome.quit() sometimes triggers WinError 6
+                # We catch it gracefully as the task is already complete.
+                try:
+                    self.driver.quit()
+                    logger.info("WebDriver closed")
+                except OSError as e:
+                    if "[WinError 6]" in str(e):
+                        logger.debug(f"Ignored WinError 6 during driver quit: {e}")
+                    else:
+                        raise
         except Exception as e:
             logger.error(f"Error during cleanup: {str(e)}\n{traceback.format_exc()}")
         finally:
-            # Ensure the driver is cleared to prevent reuse.
             self.driver = None
             self.wait = None
 
