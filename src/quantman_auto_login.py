@@ -289,12 +289,39 @@ class QuantmanAutoLogin:
                 )
             except TimeoutException:
                 logger.info("Ctrl+K modal didn't open or search input not found, trying 'Login With Broker' button")
-                # Try multiple possible button selectors
-                login_btn = self.driver.find_element(By.XPATH, "//button[contains(text(), 'Login With Broker')] | //button[contains(@class, 'change-broker-btn')] | //div[contains(text(), 'Login With Broker')]")
-                self.driver.execute_script("arguments[0].click();", login_btn)
-                search_input = self.wait.until(
-                    EC.visibility_of_element_located((By.CSS_SELECTOR, "input[placeholder*='Search'], input[placeholder*='broker']"))
-                )
+                # Try multiple possible button selectors for the landing page
+                try:
+                    # Robust landing page selectors found via browser inspection
+                    landing_page_selectors = [
+                        (By.CSS_SELECTOR, "button.login-btn"),
+                        (By.CSS_SELECTOR, "button.free-trial-button"),
+                        (By.XPATH, "//button[contains(normalize-space(.), 'Login With Broker')]"),
+                        (By.XPATH, "//button[contains(@class, 'change-broker-btn')]")
+                    ]
+                    
+                    login_btn = None
+                    for by, val in landing_page_selectors:
+                        try:
+                            login_btn = WebDriverWait(self.driver, 5).until(EC.element_to_be_clickable((by, val)))
+                            if login_btn:
+                                logger.info(f"Found login button with {by}: {val}")
+                                break
+                        except:
+                            continue
+                            
+                    if not login_btn:
+                        # Final ditch effort: locate any button containing "Login" or "Broker"
+                        login_btn = self.driver.find_element(By.XPATH, "//button[contains(., 'Login') or contains(., 'Broker')]")
+
+                    self.driver.execute_script("arguments[0].click();", login_btn)
+                    logger.info("Clicked initial Login button")
+                    
+                    search_input = self.wait.until(
+                        EC.visibility_of_element_located((By.CSS_SELECTOR, "input[placeholder*='Search'], input[placeholder*='broker']"))
+                    )
+                except Exception as inner_e:
+                    logger.error(f"Failed to trigger broker modal: {inner_e}")
+                    raise
 
             # Step 3: Feed "flattrade" into the search box
             search_input.clear()
