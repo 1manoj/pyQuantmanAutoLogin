@@ -47,12 +47,17 @@ The script uses this token to upload a daily login file so it knows not to try l
 2.  Go to **Settings** > **Developer settings** > **Personal access tokens** > **Tokens (classic)**.
 3.  Click **Generate new token (classic)**.
 4.  **Permissions Required**:
+<<<<<<< HEAD
     - **`repo`**: (Check the **entire** box) This allows the script to read/write to your repository contents. Without this, the system will hit a `403 Forbidden` error.
     - `workflow`: (Optional, but recommended)
 
 > [!IMPORTANT]
 > If you get a **403 Forbidden** error in your logs, your token doesn't have the correct write permissions. Re-edit your token and ensure the entire **repo** scope is selected.
 
+=======
+    - `repo`: (Check the entire box) This allows the script to read/write to your repository contents.
+    - `workflow`: (Optional, but recommended)
+>>>>>>> 087dc30 (Secret Guides)
 5.  **Copy the Token**: Copy it immediately! It starts with `ghp_...` or `github_pat_...`. 
 
 ---
