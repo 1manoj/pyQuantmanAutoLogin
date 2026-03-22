@@ -38,6 +38,8 @@ jobs:
           PIN: ${{ secrets.FLATTRADE_PIN }}
           TOTP_SECRET: ${{ secrets.TOTP_SECRET }}
           GH_TOKEN: ${{ secrets.GH_PAT }} # Your Personal Access Token (PAT)
+          GH_REPO: ${{ secrets.GH_REPO}}
+          GH_OWNER: ${{ secrets.GH_OWNER}}
           # Alternatively, map other variables if needed
         run: |
           mkdir -p config
@@ -47,9 +49,9 @@ jobs:
             "password": "'$PASSWORD'",
             "pin": "'$PIN'",
             "totp_secret": "'$TOTP_SECRET'",
-            "GITHUB_OWNER": "1manoj",
-            "GITHUB_REPO": "pyQuantmanAutoLogin",
             "GITHUB_TOKEN": "'$GH_TOKEN'",
+            "GITHUB_REPO": "'$GH_REPO'",
+            "GITHUB_OWNER": "'$GH_OWNER'",
             "browser_settings": {
               "headless": true
             }
