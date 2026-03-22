@@ -275,68 +275,56 @@ class QuantmanAutoLogin:
         Select Flattrade broker from the list
         """
         try:
-            # Step 1: Open the broker selection dialog
-            logger.info("Sending Ctrl+K shortcut to open broker dialog")
-            body = self.driver.find_element(By.TAG_NAME, "body")
-            body.send_keys(Keys.CONTROL, "k")
-            time.sleep(self.buffer_small_delay_seconds)
-
-            # Step 2: Search for Flattrade
-            try:
-                # Use a very broad placeholder match for the search input
-                search_input = self.wait.until(
-                    EC.visibility_of_element_located((By.CSS_SELECTOR, "input[placeholder*='Search'], input[placeholder*='broker']"))
-                )
-            except TimeoutException:
-                logger.info("Ctrl+K modal didn't open or search input not found, trying 'Login With Broker' button discovery")
-                
-                # Robust landing page selectors found via browser inspection
-                landing_page_selectors = [
-                    (By.CSS_SELECTOR, "button.login-btn"),
-                    (By.CSS_SELECTOR, "button.free-trial-button"),
-                    (By.XPATH, "//button[contains(normalize-space(.), 'Login')]"),
-                    (By.XPATH, "//div[contains(normalize-space(.), 'Login With Broker')]"),
-                    (By.XPATH, "//button[contains(@class, 'change-broker-btn')]")
-                ]
-                
-                login_btn = None
-                # Retry for up to 15 seconds to give the landing page extra time to render
-                for retry in range(3):
-                    for by, val in landing_page_selectors:
-                        try:
-                            # Use a short timeout for each individual check
-                            temp_wait = WebDriverWait(self.driver, 5)
-                            login_btn = temp_wait.until(EC.element_to_be_clickable((by, val)))
-                            if login_btn:
-                                logger.info(f"Entry point found using {by}: {val} (Attempt {retry+1})")
-                                break
-                        except:
-                            continue
-                    if login_btn:
-                        break
-                    logger.info(f"Entry point not found, retrying in 5 seconds... (Attempt {retry+1}/3)")
-                    time.sleep(5)
-                    
-                if not login_btn:
-                    # Final Debugging: Capture a screenshot to see what's actually on the screen
-                    fail_screen = os.path.join(LOG_DIR, 'failed_login_discovery.png')
-                    self.driver.save_screenshot(fail_screen)
-                    logger.error(f"Failed to find any login entry points. Screenshot saved to {fail_screen}")
-                    # Direct navigation attempt
-                    logger.info("Trying direct navigation to help trigger the modal...")
-                    self.driver.execute_script("window.scrollTo(0, 500);")
-                    time.sleep(1)
-
+            # Step 1: Find and click the 'Login With Broker' button directly
+            logger.info("Looking for 'Login With Broker' button on landing page")
+            
+            # Robust landing page selectors found via browser inspection
+            landing_page_selectors = [
+                (By.CSS_SELECTOR, "button.login-btn"),
+                (By.CSS_SELECTOR, "button.free-trial-button"),
+                (By.XPATH, "//button[contains(normalize-space(.), 'Login')]"),
+                (By.XPATH, "//div[contains(normalize-space(.), 'Login With Broker')]"),
+                (By.XPATH, "//button[contains(@class, 'change-broker-btn')]")
+            ]
+            
+            login_btn = None
+            # Retry for up to 15 seconds to give the landing page extra time to render
+            for retry in range(3):
+                for by, val in landing_page_selectors:
+                    try:
+                        # Use a short timeout for each individual check
+                        temp_wait = WebDriverWait(self.driver, 5)
+                        login_btn = temp_wait.until(EC.element_to_be_clickable((by, val)))
+                        if login_btn:
+                            logger.info(f"Entry point found using {by}: {val} (Attempt {retry+1})")
+                            break
+                    except:
+                        continue
                 if login_btn:
-                    self.driver.execute_script("arguments[0].click();", login_btn)
-                    logger.info("Clicked initial Login button successfully")
+                    break
+                logger.info(f"Entry point not found, retrying in 5 seconds... (Attempt {retry+1}/3)")
+                time.sleep(5)
                 
-                # Wait for the search modal to appear after clicking
-                search_input = self.wait.until(
-                    EC.visibility_of_element_located((By.CSS_SELECTOR, "input[placeholder*='Search'], input[placeholder*='broker']"))
-                )
+            if not login_btn:
+                # Final Debugging: Capture a screenshot to see what's actually on the screen
+                fail_screen = os.path.join(LOG_DIR, 'failed_login_discovery.png')
+                self.driver.save_screenshot(fail_screen)
+                logger.error(f"Failed to find any login entry points. Screenshot saved to {fail_screen}")
+                # Direct navigation attempt
+                logger.info("Trying direct navigation to help trigger the modal...")
+                self.driver.execute_script("window.scrollTo(0, 500);")
+                time.sleep(1)
+                raise Exception("Unable to locate any login entry point on the landing page.")
 
-            # Step 3: Feed "flattrade" into the search box
+            self.driver.execute_script("arguments[0].click();", login_btn)
+            logger.info("Clicked initial Login button successfully")
+            
+            # Wait for the search modal to appear after clicking
+            search_input = self.wait.until(
+                EC.visibility_of_element_located((By.CSS_SELECTOR, "input[placeholder*='Search'], input[placeholder*='broker']"))
+            )
+
+            # Step 2: Feed "flattrade" into the search box
             search_input.clear()
             search_input.send_keys("flattrade")
             time.sleep(self.buffer_small_delay_seconds)
