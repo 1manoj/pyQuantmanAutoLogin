@@ -18,6 +18,9 @@ Ensure your sensitive local files never reach GitHub in the first place:
 ---
 
 ## 🚀 Phase 2: Storing Secrets on GitHub
+> [!TIP]
+> **New to these secrets?** Check out the [Secret Acquisition Guide](SECRET_GUIDES.md) to find your keys for Flattrade, Twilio, and GitHub.
+
 GitHub has a dedicated feature for this called **Repository Secrets**.
 1.  Navigate to your repository on GitHub.
 2.  Go to **Settings** > **Secrets and variables** > **Actions**.
