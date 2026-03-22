@@ -11,5 +11,4 @@ src/__pycache__/
 src/utils/__pycache__/
 flattrade_auth_dom.html
 flattrade_auth_error_state.png
-logins/
 !config/config.template.json
