@@ -582,13 +582,14 @@ class QuantmanAutoLogin:
 
             time.sleep(self.buffer_medium_delay_seconds)
 
-            # Wait for user field and fill credentials
             try:
                 user_field = self.wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, "input[placeholder*='User ID']")))
             except TimeoutException:
                 logger.error("Timeout finding userName. Dumping DOM to flattrade_auth_dom.html...")
-                with open("flattrade_auth_dom.html", "w", encoding="utf-8") as f:
+                auth_dom_path = os.path.join(LOG_DIR, "flattrade_auth_dom.html")
+                with open(auth_dom_path, "w", encoding="utf-8") as f:
                     f.write(self.driver.page_source)
+                logger.info(f"Saved DOM dump to: {auth_dom_path}")
                 raise
             user_field.clear()
             user_field.send_keys(self.config['username'])
@@ -641,22 +642,34 @@ class QuantmanAutoLogin:
             logger.info("Waiting for authentication window to close (indicates success)...")
             start_wait = time.time()
             auth_closed = False
-            while time.time() - start_wait < 15:
+            # Increased timeout to 30s for GitHub Actions environment
+            while time.time() - start_wait < 30:
                 if len(self.driver.window_handles) < 2:
                     auth_closed = True
                     break
                 time.sleep(1)
             
             if not auth_closed:
-                logger.warning("Auth window still open after 15s. Taking screenshot and attempting to switch back to main window.")
+                logger.warning("Auth window still open after 30s. Taking screenshot and attempting to switch back to main window.")
                 try:
-                    self.driver.save_screenshot("flattrade_auth_error_state.png")
-                    logger.info("Saved flattrade_auth_error_state.png")
+                    # Save screenshot in the logs directory for GitHub Action artifact upload
+                    error_ss = os.path.join(LOG_DIR, "flattrade_auth_error_state.png")
+                    self.driver.save_screenshot(error_ss)
+                    logger.info(f"Saved auth error state screenshot to: {error_ss}")
+                    
+                    # Also dump DOM for debugging
+                    error_dom = os.path.join(LOG_DIR, "flattrade_auth_dom_error.html")
+                    with open(error_dom, "w", encoding="utf-8") as f:
+                        f.write(self.driver.page_source)
+                    logger.info(f"Saved auth error DOM to: {error_dom}")
                 except Exception as ss_e:
-                    logger.error(f"Failed to take screenshot: {ss_e}")
+                    logger.error(f"Failed to capture error artifacts: {ss_e}")
 
                 if len(self.driver.window_handles) > 0:
-                    self.driver.switch_to.window(self.driver.window_handles[0])
+                    try:
+                        self.driver.switch_to.window(self.driver.window_handles[0])
+                    except:
+                        pass
             else:
                 logger.info("Authentication window closed successfully")
             
@@ -701,10 +714,15 @@ class QuantmanAutoLogin:
                 except TimeoutException:
                     if attempt == 0:
                         logger.info("Dashboard cards not found, refreshing page once...")
+                        time.sleep(10) # Wait a bit more before refresh in case redirect is slow
                         self.driver.refresh()
-                        time.sleep(5)
+                        time.sleep(10)
                     else:
                         logger.error("Timeout waiting for broker integration cards after refresh")
+                        # Take final screenshot of dashboard failure
+                        fail_ss = os.path.join(LOG_DIR, "dashboard_fail_state.png")
+                        self.driver.save_screenshot(fail_ss)
+                        logger.info(f"Saved dashboard failure screenshot to: {fail_ss}")
             
             return False
         except Exception as e:
