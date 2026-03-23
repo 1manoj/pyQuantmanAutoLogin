@@ -168,19 +168,36 @@ class QuantmanAutoLogin:
 
     def get_chrome_version(self) -> Optional[int]:
         """
-        Detect the installed Chrome version to help uc find the correct driver
+        Detect the installed Chrome version to help uc find the correct driver.
+        Uses uc's internal discovery logic to find the exact binary being used.
         """
         try:
-            # Try different commands based on OS
+            # First, try to find the executable that undetected-chromedriver will use
+            browser_path = uc.find_chrome_executable()
+            if browser_path:
+                logger.info(f"UC target browser path: {browser_path}")
+                try:
+                    # Run --version on the specific binary found
+                    # Use quotes for path in case of spaces
+                    cmd = f'"{browser_path}" --version'
+                    output = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT).decode()
+                    version_match = re.search(r'(\d+)\.', output)
+                    if version_match:
+                        version = int(version_match.group(1))
+                        logger.info(f"Detected Chrome version from binary ({browser_path}): {version}")
+                        return version
+                except Exception as e:
+                    logger.warning(f"Could not get version from {browser_path}: {e}")
+
+            # Fallback to general commands if UC discovery fails or version check fails
             if os.name == 'posix':  # Linux/macOS
-                # Check different possible locations/names
                 for cmd in ["google-chrome --version", "google-chrome-stable --version", "chromium-browser --version"]:
                     try:
                         output = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT).decode()
                         version_match = re.search(r'(\d+)\.', output)
                         if version_match:
                             version = int(version_match.group(1))
-                            logger.info(f"Detected Chrome version ({cmd}): {version}")
+                            logger.info(f"Detected Chrome version (fallback {cmd}): {version}")
                             return version
                     except:
                         continue
