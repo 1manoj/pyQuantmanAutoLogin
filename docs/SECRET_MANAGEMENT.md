@@ -25,12 +25,20 @@ GitHub has a dedicated feature for this called **Repository Secrets**.
 1.  Navigate to your repository on GitHub.
 2.  Go to **Settings** > **Secrets and variables** > **Actions**.
 3.  Click **New repository secret** for each of these:
-    - `FLATTRADE_USERNAME`
-    - `FLATTRADE_PASSWORD`
-    - `FLATTRADE_PIN`
-    - `TOTP_SECRET`
-    - **`GH_PAT`**: (Personal Access Token) This replaces the built-in `GITHUB_TOKEN` for repository-wide write permissions.
-    - **Twilio Secrets**: `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, etc.
+- `FLATTRADE_USERNAME`: Your FZ-ID.
+- `FLATTRADE_PASSWORD`: Your trading password.
+- `FLATTRADE_PIN`: Your 6-digit transaction PIN.
+- `FLATTRADE_API_KEY`: Your Flattrade API Key.
+- `FLATTRADE_API_SECRET`: Your Flattrade API Secret.
+- `TOTP_SECRET`: The 2FA secret key from Flattrade.
+- `GH_OWNER`: Your GitHub username (e.g., `1manoj`).
+- `GH_REPO`: Your repository name (e.g., `pyQuantmanAutoLogin`).
+- `GH_PAT`: Your GitHub Personal Access Token with `repo` permissions.
+- `NOTIFICATION_PHONE_NUMBER`: The phone number to receive alerts.
+- `TWILIO_ACCOUNT_SID`: From your Twilio Console.
+- `TWILIO_AUTH_TOKEN`: From your Twilio Console.
+- `TWILIO_PHONE_NUMBER`: Your Twilio SMS number.
+- `TWILIO_WHATSAPP_NUMBER`: Your Twilio WhatsApp Sandbox number.
 
 ---
 
@@ -45,8 +53,12 @@ Update your `.github/workflows/scheduled-quantman-login.yml` as follows:
     USERNAME: ${{ secrets.FLATTRADE_USERNAME }}
     PASSWORD: ${{ secrets.FLATTRADE_PASSWORD }}
     PIN: ${{ secrets.FLATTRADE_PIN }}
+    API_KEY: ${{ secrets.FLATTRADE_API_KEY }}
+    API_SECRET: ${{ secrets.FLATTRADE_API_SECRET }}
     TOTP_SECRET: ${{ secrets.TOTP_SECRET }}
     GH_TOKEN: ${{ secrets.GH_PAT }}
+    GH_OWNER: ${{ secrets.GH_OWNER }}
+    GH_REPO: ${{ secrets.GH_REPO }}
   run: |
     mkdir -p config
     echo '{
@@ -54,9 +66,11 @@ Update your `.github/workflows/scheduled-quantman-login.yml` as follows:
       "username": "'$USERNAME'",
       "password": "'$PASSWORD'",
       "pin": "'$PIN'",
+      "api_key": "'$API_KEY'",
+      "api_secret": "'$API_SECRET'",
       "totp_secret": "'$TOTP_SECRET'",
-      "GITHUB_OWNER": "1manoj",
-      "GITHUB_REPO": "pyQuantmanAutoLogin",
+      "GITHUB_OWNER": "'$GH_OWNER'",
+      "GITHUB_REPO": "'$GH_REPO'",
       "GITHUB_TOKEN": "'$GH_TOKEN'",
       "browser_settings": { "headless": true }
     }' > config/config.json

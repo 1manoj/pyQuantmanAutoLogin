@@ -24,14 +24,15 @@ This layer generates **time-based one-time passwords (TOTP)** on the fly to bypa
 ## 🔄 The Login Flow (Sequence)
 1.  **Check Condition**: The `QuantmanAutoLogin` class probes the GitHub repo for a login file from the current date.
 2.  **WebDriver Setup**: Chrome is initialized with specific options to stabilize popup handling (`--disable-features=IsolateOrigins,site-per-process`, `--disable-popup-blocking`).
-3.  **Headed Mode**: The logic is specifically adjusted to run in **headed mode** as headless browsers were found to suppress the `window.open` calls used by the login button on Quantman.
+3.  **Headless Stealth Mode**: The system runs in a "Modern Headless" mode (`--headless=new`) which is much harder for security services to detect compared to legacy headless modes.
 4.  **Broker Selection**: The script triggers the broker dialog using the `Ctrl+K` shortcut, searches for "Flattrade," and selects it.
 5.  **Flattrade Auth Popup**: 
     - The script identifies a new window handle after clicking the login button.
     - It switches to the new window and waits for the redirect.
     - It fills out User ID, Password, and TOTP on the Flattrade auth page.
 6.  **Submission**: The script submits the Flattrade form and waits for the popup to close automatically, signaling success.
-7.  **Verification**: The script returns to the main window and probes for specific "Broker Integration" and "Live Credits" elements on the dashboard to confirm a successful session.
+7.  **Cloudflare Handling**: Before verifying elements, the script proactively checks for and solves Cloudflare Turnstile challenges using specialized stealth parameters and simulated user interactions.
+8.  **Verification**: The script returns to the main window and probes for specific "Broker Integration" and "Live Credits" elements on the dashboard to confirm a successful session.
 8.  **Status Propagation**: Success or error messages are sent via Twilio, and a new login status file is created on GitHub.
 
 ---

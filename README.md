@@ -12,7 +12,7 @@ Automatically log in to your **Quantman** dashboard using **Flattrade** as your 
 
 ## 🌟 Key Features
 - **Total Automation**: Handles the full login sequence including the nested Flattrade popup.
-- **Cloudflare Stealth Mode**: Uses `undetected-chromedriver` and `selenium-stealth` to bypass security challenges on GitHub Actions.
+- **Cloudflare Turnstile Bypass**: Advanced stealth mode using `--headless=new`, **User-Agent spoofing**, and **ActionChains** to solve interactive human verification checks on GitHub Actions.
 - **Smart 2FA**: Generates your TOTP (Time-Based OTP) on the fly.
 - **Cross-Platform State**: Uses the GitHub API to check if you are already logged in for the day, preventing redundant attempts.
 - **Real-time Notifications**: Get success or fail updates via **WhatsApp** or **SMS** through Twilio.
@@ -83,7 +83,8 @@ python src/scheduler.py
 
 ## 🔍 Troubleshooting (If something goes wrong)
 
-- **Popup not appearing?**: The script is optimized to run in "Headed" mode (visible browser). Check `config/config.json` and ensure `"headless": false` is set for first-time debugging.
+- **Cloudflare Challenge?**: The script automatically detects and attempts to solve "Verify you are human" checks. If it fails, it will wait up to 60 seconds (visible in logs).
+- **Headless Debugging**: If the login fails on your CI, check the `logs/` directory for `cloudflare_challenge_*.png`.
 - **Incorrect TOTP?**: Verify that your "TOTP Secret" matches the QR code secret provided by Flattrade during registration.
 - **Check the Logs**: Look in `logs/quantman_login.log` for a detailed play-by-play or check `logs/flattrade_auth_error_state.png` for a screenshot of the failure.
 

@@ -1,30 +1,23 @@
-# File Structure
-
-```
-quantman-auto-login/
-├── quantman_auto_login.py      # Main automation script
-├── config.json                 # Configuration template
-├── .env                        # Environment variables template
+pyQuantmanAutoLogin/
+├── src/
+│   ├── main.py                 # (Not present, using quantman_auto_login.py)
+│   ├── quantman_auto_login.py  # Main automation script
+│   ├── scheduler.py            # Automated scheduling
+│   ├── test_totp.py            # TOTP testing utility
+│   ├── test_notifications.py   # Notification testing utility
+│   └── validate_config.py      # Configuration validator
+├── config/
+│   ├── config.template.json    # Configuration template
+│   └── config.json             # YOUR REAL CREDENTIALS (Ignored)
+├── docs/
+│   ├── ARCHITECTURE.md         # System design
+│   ├── CHALLENGES_AND_LEARNINGS.md # Debugging history
+│   ├── SECRET_MANAGEMENT.md    # GitHub Secrets guide
+│   └── ...                     # Other docs
 ├── requirements.txt            # Python dependencies
-├── test_totp.py               # TOTP testing utility
-├── test_notifications.py      # Notification testing utility
-├── scheduler.py               # Automated scheduling
-├── validate_config.py         # Configuration validator
-├── README.md                  # Setup instructions
-├── .gitignore                 # Git ignore file
-├── PACKAGE_SUMMARY.md         # This summary
-└── workflow_chart.png         # Process workflow diagram
+└── README.md                  # Setup instructions
 ```
 
-## File Sizes and Creation Info
-- quantman_auto_login.py: 14326 bytes
-- config.json: 439 bytes
-- .env: 431 bytes
-- requirements.txt: 91 bytes
-- test_totp.py: 1310 bytes
-- test_notifications.py: 2690 bytes
-- scheduler.py: 1842 bytes
-- validate_config.py: 3307 bytes
-- PACKAGE_SUMMARY.md: 5593 bytes
-
-Created: 2025-07-13 19:58:23
+## Maintenance Note
+Last updated: 2026-03-23
+The `quantman_auto_login.py` script has been significantly enhanced with Cloudflare Turnstile bypass logic and robust artifact saving for CI environments.

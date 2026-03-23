@@ -9,10 +9,11 @@ This document records the technical hurdles faced during the automation of the Q
 While the script worked perfectly on a local machine (with a residential IP), it consistently failed on GitHub Actions. The logs showed timeouts while looking for the "Login" button, but the cause was invisible in headless mode. 
 
 ### Solution
-- **Automated Debugging**: We implemented a failure-triggered screenshot capture. This revealed the true culprit: a **Cloudflare "Verify you are human"** challenge.
-- **Stealth Browser Migration**: We replaced the standard Selenium WebDriver with `undetected-chromedriver` (UC).
-- **Fingerprint Masking**: Applied `selenium-stealth` to mimic a real Windows-resident user agent, resolving issues with navigator properties (`languages`, `platform`, `vendor`) that automated browsers usually leak.
-- **Challenge Handler**: Created a `handle_cloudflare_challenge` method to detect the transition and wait up to 40 seconds for the challenge to clear.
+- **Automated Debugging**: We implemented a failure-triggered screenshot capture. This revealed the true culprit: a **Cloudflare Turnstile** ("Verify you are human") challenge.
+- **Stealth Browser Migration**: We upgraded the WebDriver setup to use `undetected-chromedriver` (UC) with the `--headless=new` flag, which better mimics modern browser behavior compared to legacy headless modes.
+- **Fingerprint Masking**: Applied `selenium-stealth` and explicit **User-Agent spoofing** to mimic a real Windows-resident user.
+- **Blink Feature Suppression**: Added `--disable-blink-features=AutomationControlled` to strip the `navigator.webdriver` flag that Cloudflare uses to detect automation.
+- **Interaction Emulation**: Added an `ActionChains` fallback to physically click the center of the Turnstile iframe if it doesn't solve automatically.
 
 ### Learning
 > [!IMPORTANT] Always implement automated screenshots on failure in CI/CD environments. Without the visual evidence, we would have wasted hours guessing selector issues when the real problem was an anti-bot wall.
