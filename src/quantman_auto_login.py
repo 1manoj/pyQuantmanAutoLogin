@@ -23,6 +23,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.common.action_chains import ActionChains
 from selenium_stealth import stealth
 from twilio.rest import Client
 from twilio.base.exceptions import TwilioException
@@ -223,13 +224,18 @@ class QuantmanAutoLogin:
         try:
             options = uc.ChromeOptions()
             if headless:
-                options.add_argument('--headless')
+                options.add_argument('--headless=new')
             
             # Optimized arguments for Cloudflare bypass on Linux/GitHub Runners
             options.add_argument('--no-sandbox')
             options.add_argument('--disable-dev-shm-usage')
             options.add_argument('--disable-gpu')
             options.add_argument('--window-size=1920,1080')
+            options.add_argument('--disable-blink-features=AutomationControlled')
+            
+            # Spoof realistic User-Agent to override default headless UA
+            user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+            options.add_argument(f'--user-agent={user_agent}')
             
             # Initialize undetected_chromedriver with version detection to avoid mismatch
             version_main = self.get_chrome_version()
@@ -353,6 +359,17 @@ class QuantmanAutoLogin:
                 self.driver.save_screenshot(cf_ss)
                 logger.info(f"Captured Cloudflare challenge screenshot: {cf_ss}")
                 
+                # Attempt to click the Turnstile widget if we can find it
+                try:
+                    time.sleep(2)  # Let widget render
+                    cf_iframe = self.driver.find_element(By.XPATH, "//iframe[contains(@title, 'Cloudflare')]")
+                    if cf_iframe:
+                        logger.info("Found Cloudflare iframe, attempting to click widget center to trigger Turnstile...")
+                        actions = ActionChains(self.driver)
+                        actions.move_to_element(cf_iframe).click().perform()
+                except Exception as e:
+                    logger.debug(f"Could not interact with Turnstile widget: {e}")
+
                 # Wait for the challenge to clear (up to 60 seconds for CI)
                 for i in range(60):
                     time.sleep(1)

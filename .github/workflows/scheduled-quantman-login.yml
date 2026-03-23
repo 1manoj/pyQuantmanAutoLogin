@@ -60,11 +60,11 @@ jobs:
               "sms_enabled": false
             },
             "retry_settings": {
-              "attempts": 2,
+              "attempts": 1,
               "delay_seconds": 30
             },
-            "buffer_small_delay_seconds": 3,
-            "buffer_medium_delay_seconds": 6,
+            "buffer_small_delay_seconds": 6,
+            "buffer_medium_delay_seconds": 12,
             "browser_settings": {
               "headless": true,
               "timeout": 20,
