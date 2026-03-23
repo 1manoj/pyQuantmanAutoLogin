@@ -327,7 +327,9 @@ class QuantmanAutoLogin:
                 "//h1[contains(text(), 'verification')]",
                 "//div[contains(text(), 'verifying you are not a bot')]",
                 "//title[contains(text(), 'Just a moment')]",
-                "//iframe[contains(@title, 'Cloudflare')]"
+                "//iframe[contains(@title, 'Cloudflare')]",
+                "//div[contains(text(), 'Verify you are human')]",
+                "//h1[contains(text(), 'Please stand by')]"
             ]
             
             is_challenged = False
@@ -336,23 +338,43 @@ class QuantmanAutoLogin:
                     is_challenged = True
                     break
             
+            # Check title for Turnstile
+            if not is_challenged:
+                try:
+                    if "Cloudflare" in self.driver.title or "Just a moment" in self.driver.title:
+                        is_challenged = True
+                except:
+                    pass
+
             if is_challenged:
                 logger.info("Cloudflare challenge detected. Waiting for verification...")
                 # Take a screenshot for debugging the challenge state
-                self.driver.save_screenshot(os.path.join(LOG_DIR, 'cloudflare_challenge.png'))
+                cf_ss = os.path.join(LOG_DIR, f'cloudflare_challenge_{int(time.time())}.png')
+                self.driver.save_screenshot(cf_ss)
+                logger.info(f"Captured Cloudflare challenge screenshot: {cf_ss}")
                 
-                # Wait for the challenge to clear (up to 30 seconds)
-                # We check for the absence of the challenge or the presence of the landing page button
-                for _ in range(30):
+                # Wait for the challenge to clear (up to 60 seconds for CI)
+                for i in range(60):
                     time.sleep(1)
-                    # Check if any original entry point is now visible
-                    entry_points = ["button.login-btn", "button.free-trial-button", "button.login-btn"]
-                    for ep in entry_points:
-                        if len(self.driver.find_elements(By.CSS_SELECTOR, ep)) > 0:
-                            logger.info("Cloudflare challenge cleared successfully!")
+                    # Check if any original entry point or dashboard element is now visible
+                    success_indicators = [
+                        "button.login-btn", 
+                        "button.free-trial-button", 
+                        "div.card.info", 
+                        "a[href*='dashboard']",
+                        "//div[contains(text(), 'Broker Integration')]"
+                    ]
+                    for si in success_indicators:
+                        by = By.XPATH if si.startswith("//") else By.CSS_SELECTOR
+                        if len(self.driver.find_elements(by, si)) > 0:
+                            logger.info(f"Cloudflare challenge cleared successfully (detected {si})!")
+                            time.sleep(2) # Extra buffer
                             return True
+                    
+                    if i % 10 == 0:
+                        logger.info(f"Still waiting for Cloudflare challenge to clear... ({i}s)")
                 
-                logger.warning("Cloudflare challenge persisted beyond 30 seconds.")
+                logger.warning("Cloudflare challenge persisted beyond 60 seconds.")
                 return False
             return True
         except Exception as e:
@@ -650,20 +672,27 @@ class QuantmanAutoLogin:
                 time.sleep(1)
             
             if not auth_closed:
-                logger.warning("Auth window still open after 30s. Taking screenshot and attempting to switch back to main window.")
-                try:
-                    # Save screenshot in the logs directory for GitHub Action artifact upload
-                    error_ss = os.path.join(LOG_DIR, "flattrade_auth_error_state.png")
-                    self.driver.save_screenshot(error_ss)
-                    logger.info(f"Saved auth error state screenshot to: {error_ss}")
-                    
-                    # Also dump DOM for debugging
-                    error_dom = os.path.join(LOG_DIR, "flattrade_auth_dom_error.html")
-                    with open(error_dom, "w", encoding="utf-8") as f:
-                        f.write(self.driver.page_source)
-                    logger.info(f"Saved auth error DOM to: {error_dom}")
-                except Exception as ss_e:
-                    logger.error(f"Failed to capture error artifacts: {ss_e}")
+                logger.warning("Auth window still open after 30s. Checking for challenges in auth window...")
+                
+                # Check for Cloudflare in the auth window too (redirect target might be challenged)
+                self.handle_cloudflare_challenge()
+                
+                if len(self.driver.window_handles) > 0:
+                    try:
+                        # Re-check if it closed after challenge handling
+                        if len(self.driver.window_handles) < 2:
+                            logger.info("Auth window closed after Cloudflare handling")
+                        else:
+                            error_ss = os.path.join(LOG_DIR, "flattrade_auth_error_state.png")
+                            self.driver.save_screenshot(error_ss)
+                            logger.info(f"Saved auth error state screenshot to: {error_ss}")
+                            
+                            error_dom = os.path.join(LOG_DIR, "flattrade_auth_dom_error.html")
+                            with open(error_dom, "w", encoding="utf-8") as f:
+                                f.write(self.driver.page_source)
+                            logger.info(f"Saved auth error DOM to: {error_dom}")
+                    except Exception as ss_e:
+                        logger.error(f"Failed to capture error artifacts: {ss_e}")
 
                 if len(self.driver.window_handles) > 0:
                     try:
@@ -686,10 +715,17 @@ class QuantmanAutoLogin:
         try:
             logger.info("Verifying login status on Quantman dashboard...")
             
+            # Check for Cloudflare challenge before verification
+            self.handle_cloudflare_challenge()
+            
             # Use a fresh, longer wait for the dashboard
             dashboard_wait = WebDriverWait(self.driver, 60)
             
             for attempt in range(2):
+                # Another check for Cloudflare after initial landing (sometimes it's delayed)
+                if attempt > 0:
+                    self.handle_cloudflare_challenge()
+                
                 try:
                     # Look for cards or dashboard elements
                     cards = dashboard_wait.until(
