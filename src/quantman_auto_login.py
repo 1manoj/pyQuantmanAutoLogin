@@ -9,6 +9,8 @@ import base64
 import requests
 import time
 import traceback
+import subprocess
+import re
 from datetime import datetime
 from typing import Dict, Optional
 
@@ -164,6 +166,36 @@ class QuantmanAutoLogin:
             logger.error(f"Invalid JSON in configuration file {config_file}")
             raise
 
+    def get_chrome_version(self) -> Optional[int]:
+        """
+        Detect the installed Chrome version to help uc find the correct driver
+        """
+        try:
+            # Try different commands based on OS
+            if os.name == 'posix':  # Linux/macOS
+                # Check different possible locations/names
+                for cmd in ["google-chrome --version", "google-chrome-stable --version", "chromium-browser --version"]:
+                    try:
+                        output = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT).decode()
+                        version_match = re.search(r'(\d+)\.', output)
+                        if version_match:
+                            version = int(version_match.group(1))
+                            logger.info(f"Detected Chrome version ({cmd}): {version}")
+                            return version
+                    except:
+                        continue
+            elif os.name == 'nt':    # Windows
+                cmd = r'reg query "HKEY_CURRENT_USER\Software\Google\Chrome\BLBeacon" /v version'
+                output = subprocess.check_output(cmd, shell=True).decode()
+                version_match = re.search(r'(\d+)\.', output)
+                if version_match:
+                    version = int(version_match.group(1))
+                    logger.info(f"Detected Chrome version (Windows Reg): {version}")
+                    return version
+        except Exception as e:
+            logger.warning(f"Could not detect Chrome version: {e}")
+        return None
+
     def setup_driver(self, headless: bool = False):
         """
         Setup Chrome WebDriver using undetected_chromedriver and selenium_stealth
@@ -182,8 +214,14 @@ class QuantmanAutoLogin:
             options.add_argument('--disable-gpu')
             options.add_argument('--window-size=1920,1080')
             
-            # Initialize undetected_chromedriver
-            self.driver = uc.Chrome(options=options)
+            # Initialize undetected_chromedriver with version detection to avoid mismatch
+            version_main = self.get_chrome_version()
+            if version_main:
+                logger.info(f"Setting up UC with version_main={version_main}")
+                self.driver = uc.Chrome(options=options, version_main=version_main)
+            else:
+                logger.info("Setting up UC with automatic versioning")
+                self.driver = uc.Chrome(options=options)
             
             # Apply selenium-stealth for deep fingerprint masking (simulating Windows)
             stealth(self.driver,
