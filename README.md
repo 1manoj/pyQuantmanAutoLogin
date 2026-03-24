@@ -28,7 +28,7 @@ pyQuantmanAutoLogin/
 ├── 📂 config/            # Folder for your login settings
 │   └── 📄 config.json    # YOUR REAL CREDENTIALS (Ignored by Git)
 ├── 📂 src/               # The brain of the automation
-│   ├── 🐍 main.py        # The script you run
+│   ├── 🐍 quantman_auto_login.py # The script you run
 │   └── 🐍 scheduler.py   # To run it automatically at 9:00 AM
 ├── 📂 logs/              # Historical run reports and diagnostic images
 └── 📄 README.md          # You are here!
@@ -98,4 +98,14 @@ For more technical details or cloud deployment guides:
 - 📝 [Package Inventory](docs/PACKAGE_SUMMARY.md)
 
 ---
+
+## 🤝 Community & Standards
+To ensure a healthy and secure project environment, please refer to the following documents:
+- [Code of Conduct](CODE_OF_CONDUCT.md): Our pledge for a harassment-free community.
+- [Contributing Guidelines](CONTRIBUTING.md): How to get involved and submit changes.
+- [Security Policy](SECURITY.md): How to report vulnerabilities.
+- [Governance](GOVERNANCE.md): How decisions are made within the project.
+
+---
+
 *Disclaimer: Use this automation responsibly. Ensure compliance with Quantman and your broker's terms of service.*
